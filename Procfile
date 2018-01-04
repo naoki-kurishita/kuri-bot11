@@ -1,1 +1,1 @@
-web: node index.js
+web: env HUBOT_SLACK_TOKEN=xoxb-257509045991-Vu2mYuwcZ4q0HsCbJ3QZIjeq bin/hubot --adapter slack
