@@ -1,1 +1,1 @@
-web: bin/hubot -a slack -n kuri-bot
+web: bin/hubot --adapter slack
