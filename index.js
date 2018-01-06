@@ -1,85 +1,97 @@
 'use strict';
-const http = require('http');
-const jade = require('jade');
-const server = http.createServer((req, res) => {
-  const now = new Date();
-  console.info('Requested by ' + req.connection.remoteAddress);
-  res.writeHead(200, {
-    'Content-Type': 'text/html; charset=utf-8'
-  });
+// key: タスクの文字列 value: 完了しているかどうかの真偽値
+let tasks = new Map();
+const fs = require('fs');
+const fileName = './tasks.json';
 
-  switch (req.method) {
-    case 'GET':
-      if (req.url === '/enquetes/yaki-shabu') {
-        res.write(jade.renderFile('./form.jade', {
-          path: req.url,
-          firstItem: '焼き肉',
-          secondItem: 'しゃぶしゃぶ'
-        }));
-      } else if (req.url === '/enquetes/rice-bread') {
-        res.write(jade.renderFile('./form.jade', {
-          path: req.url,
-          firstItem: 'ごはん',
-          secondItem: 'パン'
-        }));
-      } else if (req.url === '/enquetes/sushi-pizza') {
-        res.write(jade.renderFile('./form.jade', {
-          path: req.url,
-          firstItem: '寿司',
-          secondItem: 'ピザ'
-        }));
-      } else {
-        res.write(jade.renderFile('./form.jade', {}));
-      }
-      res.end();
-      break;
-    case 'POST':
-      let body = [];
-      req.on('data', (chunk) => {
-        body.push(chunk);
-      }).on('end', () => {
-        body = Buffer.concat(body).toString();
-        const decoded = decodeURIComponent(body);
-        const postArray = decoded.split('&');
-        // postArrayの要素をname別の配列にする
-        const favorite = [];
-        const drink = [];
-        const desserts = [];
-        const name = [];
-        postArray.forEach((val) => {
-          if (val.indexOf('favorite') >= 0) {
-            favorite.push(val.split('=')[1]);
-          }
-          if (val.indexOf('drink') >= 0) {
-            drink.push(val.split('=')[1]);
-          }
-          if (val.indexOf('desserts') >= 0) {
-            desserts.push(val.split('=')[1]);
-          }
-          if (val.indexOf('name') >= 0) {
-            name.push(val.split('=')[1]);
-          }
-        });
-        console.info('投稿: ' + decoded);
-        res.write(jade.renderFile('./postResult.jade', {
-          favorite: favorite,
-          drink: drink,
-          desserts: desserts,
-          name: name
-        }));
-        res.end();
-      });
-      break;
-    default:
-      break;
-  }
+// 同期的にファイルから復元
+try {
+    const data = fs.readFileSync(fileName, 'utf8');
+    tasks = new Map(JSON.parse(data));
+} catch (ignore) {
+    console.log(fileName + 'から復元できませんでした');
+}
 
-}).on('error', (e) => {
-  console.error('Server Error', e);
-}).on('clientError', (e) => {
-  console.error('Client Error', e);
-});
-const port = process.env.PORT || 8000;
-server.listen(port, () => {
-  console.info('Listening on ' + port);
-});
+/**
+ * タスクをファイルに保存する
+ */
+function saveTasks() {
+    fs.writeFileSync(fileName, JSON.stringify(Array.from(tasks)), 'utf8');
+}
+
+/**
+* TODO を追加する
+* @param {string} task
+*/
+function todo(task) {
+    tasks.set(task, false);
+    saveTasks();
+}
+
+/**
+* タスクと完了したかどうかが含まれる配列を受け取り、完了したかを返す
+* @param {array} taskAndIsDonePair
+* @return {boolean} 完了したかどうか
+*/
+function isDone(taskAndIsDonePair) {
+    return taskAndIsDonePair[1];
+}
+
+/**
+* タスクと完了したかどうかが含まれる配列を受け取り、完了していないかを返す
+* @param {array} taskAndIsDonePair
+* @return {boolean} 完了していないかどうか
+*/
+function isNotDone(taskAndIsDonePair) {
+    return !isDone(taskAndIsDonePair);
+}
+
+/**
+* TODOの一覧の配列を取得する
+* @return {array}
+*/
+function list() {
+    return Array.from(tasks)
+        .filter(isNotDone)
+        .map(t => t[0]);
+}
+
+/**
+* TODOを完了状態にする
+* @param {string} task
+*/
+function done(task) {
+    if (tasks.has(task)) {
+        tasks.set(task, true);
+        saveTasks();
+    }
+}
+
+/**
+* 完了済みのタスクの一覧の配列を取得する
+* @return {array}
+*/
+function donelist() {
+    return Array.from(tasks)
+        .filter(isDone)
+        .map(t => t[0]);
+}
+
+/**
+* 項目を削除する
+* @param {string} task
+*/
+function del(task) {
+    tasks.delete(task);
+    saveTasks();
+}
+
+
+
+module.exports = {
+    todo: todo,
+    list: list,
+    done: done,
+    donelist: donelist,
+    del: del
+};
