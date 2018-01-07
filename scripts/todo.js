@@ -7,7 +7,7 @@
 //   ボット名 list     - TODO の一覧表示
 //   ボット名 donelist - 完了した TODO の一覧表示
 'use strict';
-const todo = require('./todo/index.js');
+const todo = require('../todo/index.js');
 module.exports = (robot) => {
 	robot.respond(/todo (.+)/i, (msg) => {
 		const task = msg.match[1].trim();
