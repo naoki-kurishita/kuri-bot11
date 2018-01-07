@@ -1,97 +1,60 @@
+// Description:
+//   TODO を管理することができるボットです
+// Commands:
+//   ボット名 todo     - TODO を作成
+//   ボット名 done     - TODO を完了にする
+//   ボット名 del      - TODO を消す
+//   ボット名 list     - TODO の一覧表示
+//   ボット名 donelist - 完了した TODO の一覧表示
 'use strict';
-// key: タスクの文字列 value: 完了しているかどうかの真偽値
-let tasks = new Map();
-const fs = require('fs');
-const fileName = './tasks.json';
+const todo = require('./todo/index.js');
+module.exports = (robot) => {
+	robot.respond(/todo (.+)/i, (msg) => {
+		const task = msg.match[1].trim();
+		todo.todo(task);
+		msg.send('追加しました: ' + task);
+	});
+	robot.respond(/done (.+)/i, (msg) => {
+		const task = msg.match[1].trim();
+		todo.done(task);
+		msg.send('完了にしました: ' + task);
+	});
+	robot.respond(/del (.+)/i, (msg) => {
+		const task = msg.match[1].trim();
+		todo.del(task);
+		msg.send('削除しました: ' + task);
+	});
+	robot.respond(/list/i, (msg) => {
+		const list = todo.list();
+		if (list.length === 0){
+			msg.send('(やることはありません)')
+		}else{
+			msg.send(todo.list().join('\n'));
+		}
+		
+    });
+    robot.respond(/donelist/i, (msg) => {
+        const donelist = todo.donelist();
+        if (donelist.length === 0) {
+            msg.send('(やったことはありません)');
+        } else {
+            msg.send(todo.donelist().join('\n'));
+        }
 
-// 同期的にファイルから復元
-try {
-    const data = fs.readFileSync(fileName, 'utf8');
-    tasks = new Map(JSON.parse(data));
-} catch (ignore) {
-    console.log(fileName + 'から復元できませんでした');
-}
-
-/**
- * タスクをファイルに保存する
- */
-function saveTasks() {
-    fs.writeFileSync(fileName, JSON.stringify(Array.from(tasks)), 'utf8');
-}
-
-/**
-* TODO を追加する
-* @param {string} task
-*/
-function todo(task) {
-    tasks.set(task, false);
-    saveTasks();
-}
-
-/**
-* タスクと完了したかどうかが含まれる配列を受け取り、完了したかを返す
-* @param {array} taskAndIsDonePair
-* @return {boolean} 完了したかどうか
-*/
-function isDone(taskAndIsDonePair) {
-    return taskAndIsDonePair[1];
-}
-
-/**
-* タスクと完了したかどうかが含まれる配列を受け取り、完了していないかを返す
-* @param {array} taskAndIsDonePair
-* @return {boolean} 完了していないかどうか
-*/
-function isNotDone(taskAndIsDonePair) {
-    return !isDone(taskAndIsDonePair);
-}
-
-/**
-* TODOの一覧の配列を取得する
-* @return {array}
-*/
-function list() {
-    return Array.from(tasks)
-        .filter(isNotDone)
-        .map(t => t[0]);
-}
-
-/**
-* TODOを完了状態にする
-* @param {string} task
-*/
-function done(task) {
-    if (tasks.has(task)) {
-        tasks.set(task, true);
-        saveTasks();
-    }
-}
-
-/**
-* 完了済みのタスクの一覧の配列を取得する
-* @return {array}
-*/
-function donelist() {
-    return Array.from(tasks)
-        .filter(isDone)
-        .map(t => t[0]);
-}
-
-/**
-* 項目を削除する
-* @param {string} task
-*/
-function del(task) {
-    tasks.delete(task);
-    saveTasks();
-}
+    });
 
 
+    robot.hear('おはよう', (msg) => {
+        const username = msg.message.user.name;
+        msg.send('オッス');
+    });
 
-module.exports = {
-    todo: todo,
-    list: list,
-    done: done,
-    donelist: donelist,
-    del: del
+    robot.hear('運勢', (msg) => {
+        const username = msg.message.user.name;
+        const lots = ['大吉', '吉', '中吉', '末吉', '凶'];
+        const lot = lots[Math.floor(Math.random() * lots.length)];
+        msg.send(lot + 'だよ, ' + username);
+    });
 };
+    
+
